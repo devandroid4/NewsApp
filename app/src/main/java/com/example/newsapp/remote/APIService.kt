@@ -1,12 +1,20 @@
 package com.example.newsapp.remote
 
+import com.example.newsapp.model.HeadResponse
+import com.example.newsapp.utilities.Constants.Companion.API_KEY
 import okhttp3.MultipartBody
 import retrofit2.Call
+import retrofit2.Response
 import retrofit2.http.*
 
 
 @JvmSuppressWildcards
 interface APIService {
+    @GET("/search")
+    suspend fun getAllNews(
+        @Query("api-key")
+        apiKey: String = API_KEY
+    ):Response<HeadResponse>
 
    /* //.......login........
     @POST("/auth/login")

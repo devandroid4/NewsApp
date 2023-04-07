@@ -1,52 +1,44 @@
 package com.example.newsapp.views.fragments
 
-import android.app.DatePickerDialog
-import android.app.DatePickerDialog.OnDateSetListener
-import android.app.Dialog
-import android.os.Build
 import android.os.Bundle
 import android.text.TextUtils
-import android.text.method.PasswordTransformationMethod
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
-import android.widget.RadioButton
-import android.widget.RadioGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.ViewModelProvider
 import com.example.newsapp.R
 import com.example.newsapp.databinding.FragmentSignUpBinding
 import com.example.newsapp.localDb.AppSessionManager
-import com.example.newsapp.utilities.CheckInternetConnection
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import com.example.newsapp.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseUser
 import java.util.*
 
 
 class SignUpFragment : Fragment() {
     private lateinit var binding:FragmentSignUpBinding
-    private var date: DatePickerDialog.OnDateSetListener? = null
-    private lateinit var myCalendar: Calendar
-    private lateinit var dialog: Dialog
     var appSessionManager: AppSessionManager? = null
+    private var viewModel: AuthViewModel? = null
 
-    var radioGroup: RadioGroup? = null
-    lateinit var radioButton: RadioButton
-    private var isShowPass = false
-    var registerMap = java.util.HashMap<String, Any>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(
+            this,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
+        )[AuthViewModel::class.java]
+        viewModel!!.userData.observe(this,
+            androidx.lifecycle.Observer<FirebaseUser?> { firebaseUser ->
+                if (firebaseUser != null) {
+                    showFragment(LoginFragment.newInstance())
+                }
+            })
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         // Inflate the layout for this fragment
         binding = FragmentSignUpBinding.inflate(inflater, container, false)
 
@@ -55,13 +47,13 @@ class SignUpFragment : Fragment() {
 
         appSessionManager?.storeRegInfo("")
 
-        binding.createNewAc.setOnClickListener(View.OnClickListener {
+        binding.signUpBtn.setOnClickListener(View.OnClickListener {
             verifyData()
         })
-
-        binding.backBtn.setOnClickListener {
+        binding.signInText.setOnClickListener {
             showFragment(LoginFragment.newInstance())
         }
+
 
 
         return binding.root
@@ -74,42 +66,12 @@ class SignUpFragment : Fragment() {
             }
     }
     private fun verifyData() {
-        if (TextUtils.isEmpty(binding.firstName.text)) {
-            binding.firstName.error = "Field is empty!"
+        if (binding.emailEditSignUp.text.isEmpty()&&binding.passEditSignUp.text.isEmpty()) {
+            binding.emailEditSignUp.error = "Field is empty!"
+            binding.passEditSignUp.error = "Field is empty!"
             return
         }
-        if (TextUtils.isEmpty(binding.lastName.text)) {
-            binding.lastName.error = "Field is empty!"
-            return
-        }
-        if (TextUtils.isEmpty(binding.etEmail.text)) {
-            binding.etEmail.error = "Field is empty!"
-            return
-        }
-        if (TextUtils.isEmpty(binding.etPassword.text)) {
-            binding.etPassword.error = "Field is empty!"
-            return
-        }
-        binding.idTypeRG.setOnCheckedChangeListener { group, checkedId ->
-            val radioButton = group.findViewById<View>(checkedId) as RadioButton
-            val gender = radioButton.text.toString()
-            Log.d("TAG", "onCheckedChanged: $gender")
-            registerMap["gender"] = gender
-        }
-
-        with(registerMap) {
-            put("email",binding.etEmail.text.toString())
-            put("password",binding.etPassword.text.toString())
-            put("first_name",binding.firstName.text.toString())
-            put("last_name",binding.lastName.text.toString())
-            val selectedOption: Int = binding.idTypeRG.checkedRadioButtonId
-            radioButton = requireActivity().findViewById(selectedOption)
-            Log.d("TAG", "verifyData: "+radioButton.text)
-            put("gender",radioButton.text)
-
-        }
-
-
+        viewModel?.register(binding.emailEditSignUp.text.toString(),binding.passEditSignUp.text.toString())
 
         }
 

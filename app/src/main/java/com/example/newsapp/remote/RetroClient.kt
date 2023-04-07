@@ -1,63 +1,28 @@
 package com.example.newsapp.remote
-
-
-import com.google.gson.GsonBuilder
-import com.ihsanbal.logging.LoggingInterceptor
-import okhttp3.Interceptor
+import com.example.newsapp.utilities.Constants.Companion.BASE_URL
 import okhttp3.OkHttpClient
-import okhttp3.internal.platform.Platform
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.lang.reflect.Modifier.TRANSIENT
-import java.util.concurrent.TimeUnit
+import okhttp3.logging.HttpLoggingInterceptor
 
-object RetroClient {
-    var retrofit: Retrofit? = null
-    const val BASE_URL = "https://content.guardianapis.com/search"
-    private var okHttpClient: OkHttpClient? = null
-        private get() {
-            if (field == null) field = loggingInterceptor?.let {
-                OkHttpClient().newBuilder()
-                    .addInterceptor(it)
-                    .connectTimeout(40, TimeUnit.SECONDS)
-                    .readTimeout(60, TimeUnit.SECONDS)
-                    .writeTimeout(60, TimeUnit.SECONDS)
-                    .addInterceptor { chain: Interceptor.Chain ->
-                        val request = chain.request().newBuilder().addHeader("lang", "en").build()
-                        chain.proceed(request)
-                    }
-                    .build()
-            }
-            return field
-        }
-    private var interceptor: LoggingInterceptor? = null
+class RetrofitInstance {
+    companion object {
 
-    //.client(okHttpClient)
-
-    ////////////////////////////////////////////////////////////////////////////
-    fun getInstance(): Retrofit? {
-
-
-        val gson = GsonBuilder()
-            .excludeFieldsWithModifiers(TRANSIENT) .create()
-            if (retrofit == null) {
-                retrofit = Retrofit.Builder()
-                    .baseUrl(BASE_URL)
-                    //.client(okHttpClient)
-                    .addConverterFactory(GsonConverterFactory.create(gson))
-                    .client(okHttpClient)
-                    .build()
-            }
-            return retrofit
-        }
-    private val loggingInterceptor: LoggingInterceptor?
-        private get() {
-            if (interceptor == null) interceptor = LoggingInterceptor.Builder()
-                .log(Platform.INFO)
-                .request("API_REQ")
-                .response("API_RES")
-                .setLevel(com.ihsanbal.logging.Level.BASIC)
+        private val retrofit by lazy {
+            val logging = HttpLoggingInterceptor()
+            logging.setLevel(HttpLoggingInterceptor.Level.BODY)
+            val client = OkHttpClient.Builder()
+                .addInterceptor(logging)
                 .build()
-            return interceptor
+            Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(client)
+                .build()
         }
+
+        val api by lazy {
+            retrofit.create(APIService::class.java)
+        }
+    }
 }
